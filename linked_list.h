@@ -19,6 +19,5 @@ void list_display(Node** head);
 void list_display_range(Node** head, Node* start_node, Node* end_node);
 int list_count_nodes(Node** head);
 void list_cleanup(Node** head);
-void main();
 
 #endif // LINKED_LIST_H

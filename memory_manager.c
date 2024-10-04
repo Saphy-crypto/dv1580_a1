@@ -165,35 +165,3 @@ void print_allocation_map() {
     printf("\n");
 }
 
-// Main test function
-int main() {
-    // Initialize the memory pool
-    mem_init(POOL_SIZE);
-
-    // Test allocation
-    void* block1 = mem_alloc(100);
-    if (block1) {
-        printf("Successfully allocated 100 bytes.\n");
-    }
-
-    // Test allocation of another block
-    void* block2 = mem_alloc(200);
-    if (block2) {
-        printf("Successfully allocated 200 bytes.\n");
-    }
-
-    // Test freeing the first block
-    mem_free(block1);
-    printf("Freed the first block.\n");
-
-    // Test resizing the second block
-    void* resized_block = mem_resize(block2, 250);
-    if (resized_block) {
-        printf("Successfully resized block2 to 250 bytes.\n");
-    }
-
-    // Test deinitializing the memory pool
-    mem_deinit();
-    return 0;
-}
-
