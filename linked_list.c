@@ -212,7 +212,7 @@ void list_display(Node** head) {
     }
 
     Node* temp = *head;
-    printf("List Contents: [");
+    printf("Full list: [");
     while (temp != NULL) {
         printf("%u", temp->data);
         temp = temp->next;
@@ -225,12 +225,10 @@ void list_display(Node** head) {
 
 /**
  * Displays a range of nodes from start_node to end_node inclusive.
- * If start_node is NULL, starts from the head.
- * If end_node is NULL, ends at the last node.
  * 
  * @param head Pointer to the head pointer of the list.
- * @param start_node Starting node of the range (NULL for head).
- * @param end_node Ending node of the range (NULL for last node).
+ * @param start_node Starting node of the range.
+ * @param end_node Ending node of the range.
  */
 void list_display_range(Node** head, Node* start_node, Node* end_node) {
     if (head == NULL) {
@@ -238,20 +236,17 @@ void list_display_range(Node** head, Node* start_node, Node* end_node) {
         return;
     }
 
-    Node* temp = *head;
-
-    // If start_node is NULL, start from head
     if (start_node == NULL) {
-        start_node = *head;
+        printf("Error: start_node is NULL in list_display_range.\n");
+        return;
     }
 
-    // If end_node is NULL, set it to the last node
     if (end_node == NULL) {
-        end_node = *head;
-        while (end_node != NULL && end_node->next != NULL) {
-            end_node = end_node->next;
-        }
+        printf("Error: end_node is NULL in list_display_range.\n");
+        return;
     }
+
+    Node* temp = *head;
 
     // Find the start_node
     while (temp != NULL && temp != start_node) {
@@ -259,8 +254,7 @@ void list_display_range(Node** head, Node* start_node, Node* end_node) {
     }
 
     if (temp == NULL) {
-        // Start node not found, display empty range
-        printf("List Range: []\n");
+        printf("Start node not found in list_display_range.\n");
         return;
     }
 
