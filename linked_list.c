@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define POOL_SIZE 1024  // Define the size of the memory pool
+#define POOL_SIZE 2048 // Define the size of the memory pool
 
 //Pointer to the beginning of the memory pool
 static char *memory_pool = NULL;
