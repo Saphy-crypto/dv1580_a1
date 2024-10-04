@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define POOL_SIZE 2048 // Define the size of the memory pool
+#define POOL_SIZE 2048  // Define the size of the memory pool
 
 //Pointer to the beginning of the memory pool
 static char *memory_pool = NULL;
@@ -169,8 +169,8 @@ void print_allocation_map() {
 
 // Node structure for the linked list
 //typedef struct Node {
-//  uint16_t data;          // Stores the data as an unsigned 16-bit integer
-//  struct Node* next;      // A pointer to the next node in the list
+//    uint16_t data;          // Stores the data as an unsigned 16-bit integer
+//    struct Node* next;      // A pointer to the next node in the list
 //} Node;
 
 // Linked list functions
@@ -360,5 +360,45 @@ void list_cleanup(Node** head) {
         temp = next_node;
     }
     *head = NULL; // Set head to NULL after cleanup
+}
+
+int main() {
+    Node* head = NULL;
+
+    // Initialize linked list with custom memory manager size
+    list_init(&head, 1024);
+
+    // Insert elements
+    list_insert(&head, 10);
+    list_display(&head); // Print after inserting 10, Expected output: [10]
+
+    list_insert(&head, 20);
+    list_display(&head); // Print after inserting 20, Expected output: [10, 20]
+
+    list_insert(&head, 30);
+    list_display(&head); // Print after inserting 30, Expected output: [10, 20, 30]
+
+    // Insert after and before
+    Node* node = list_search(&head, 20);
+    list_insert_after(node, 25);
+    list_display(&head); // Expected output: [10, 20, 25, 30]
+
+    list_insert_before(&head, node, 15);
+    list_display(&head); // Expected output: [10, 15, 20, 25, 30]
+
+    // Delete a node
+    list_delete(&head, 20);
+    list_display(&head); // Expected output: [10, 15, 25, 30]
+
+    // Count nodes
+    printf("Node count: %d\n", list_count_nodes(&head)); // Expected output: 4
+
+    // Cleanup linked list
+    list_cleanup(&head);
+    list_display(&head); // Expected output: []
+
+    // Deinitialize memory pool
+    mem_deinit();
+    return 0;
 }
 
