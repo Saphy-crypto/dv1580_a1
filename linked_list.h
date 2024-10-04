@@ -4,13 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Definition of the Node structure for the linked list
 typedef struct Node {
-    uint16_t data;  // Stores the data as an unsigned 16-bit integer
-    struct Node* next;  // Pointer to the next node in the list
+    uint16_t data;
+    struct Node* next;
 } Node;
-
-// Function declarations for the linked list
 
 void list_init(Node** head, size_t size);
 void list_insert(Node** head, uint16_t data);
