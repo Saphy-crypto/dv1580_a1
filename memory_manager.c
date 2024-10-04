@@ -46,42 +46,36 @@ void mem_init(size_t size){
 
 }
 
-void* mem_alloc(size_t size){
+void* mem_alloc(size_t size) {
     size_t free_blocks = 0;  // To count contiguous free blocks
     size_t start_index = 0;  // To record where the free block starts
 
-    // Check if memory pool is initialized
     if (memory_pool == NULL || allocation_map == NULL) {
         printf("Memory pool is not initialized.\n");
         return NULL;
     }
 
-    // First-fit strategy: find first free block big enough
+    // First-fit strategy: find first contiguous free block big enough
     for (size_t i = 0; i < POOL_SIZE; i++) {
         if (!allocation_map[i]) {
-            // Start counting free blocks
             if (free_blocks == 0) {
                 start_index = i;
             }
             free_blocks++;
-            
-            // If we've found enough free blocks, allocate memory
             if (free_blocks == size) {
-                // Mark these blocks as allocated
+                // We've found enough contiguous free blocks
                 for (size_t j = start_index; j < start_index + size; j++) {
-                    allocation_map[j] = true;
+                    allocation_map[j] = true;  // Mark as allocated
                 }
-                // Return pointer to the start of allocated block
                 return memory_pool + start_index;
             }
         } else {
-            // Reset free block counter if we hit an allocated block
+            // Reset the free block counter if we hit an allocated block
             free_blocks = 0;
         }
     }
 
-    // If we exit the loop, no suitable block was found
-    printf("Not enough memory available to allocate %zu bytes.\n", size);
+    printf("Not enough contiguous memory to allocate %zu bytes.\n", size);
     return NULL;
 }
 
