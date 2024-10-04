@@ -7,6 +7,7 @@
 // Global Variables
 static char *memory_pool = NULL;
 static bool *allocation_map = NULL;
+static size_t *allocation_size_map = NULL; // New Allocation Size Map
 static size_t total_allocated_memory = 0;  // Track total allocated memory
 static size_t pool_size = 0;               // Dynamic pool size
 
@@ -17,13 +18,14 @@ void mem_init(size_t size) {
         exit(1);
     }
 
-    // Initialize the memory pool and allocation map
+    // Initialize the memory pool
     memory_pool = (char*)malloc(size);
     if (memory_pool == NULL) {
         printf("Memory pool allocation failed!\n");
         exit(1);
     }
 
+    // Initialize the allocation map
     allocation_map = (bool*)malloc(size * sizeof(bool));
     if (allocation_map == NULL) {
         printf("Allocation map creation failed!\n");
@@ -31,9 +33,19 @@ void mem_init(size_t size) {
         exit(1);
     }
 
-    // Initialize the allocation map to false (all memory is free)
+    // Initialize the allocation size map
+    allocation_size_map = (size_t*)malloc(size * sizeof(size_t));
+    if (allocation_size_map == NULL) {
+        printf("Allocation size map creation failed!\n");
+        free(memory_pool);
+        free(allocation_map);
+        exit(1);
+    }
+
+    // Initialize the allocation maps to false and size 0
     for (size_t i = 0; i < size; i++) {
         allocation_map[i] = false;
+        allocation_size_map[i] = 0;
     }
 
     pool_size = size;               // Set the dynamic pool size
@@ -44,11 +56,13 @@ void mem_init(size_t size) {
 
 // Allocate Memory
 void* mem_alloc(size_t size) {
-    size_t free_blocks = 0;
-    size_t start_index = 0;
+    if (size == 0) {
+        printf("Cannot allocate 0 bytes.\n");
+        return NULL;
+    }
 
     // Check if memory pool is initialized
-    if (memory_pool == NULL || allocation_map == NULL) {
+    if (memory_pool == NULL || allocation_map == NULL || allocation_size_map == NULL) {
         printf("Memory pool is not initialized.\n");
         return NULL;
     }
@@ -58,6 +72,9 @@ void* mem_alloc(size_t size) {
         printf("Not enough memory available to allocate %zu bytes. Total allocated: %zu bytes.\n", size, total_allocated_memory);
         return NULL;
     }
+
+    size_t free_blocks = 0;
+    size_t start_index = 0;
 
     // First-fit strategy: find the first contiguous free block big enough
     for (size_t i = 0; i < pool_size; i++) {
@@ -71,6 +88,7 @@ void* mem_alloc(size_t size) {
                 // Mark these blocks as allocated
                 for (size_t j = start_index; j < start_index + size; j++) {
                     allocation_map[j] = true;
+                    allocation_size_map[start_index] = size; // Record allocation size
                 }
                 total_allocated_memory += size;
                 printf("Allocated %zu bytes at index %zu. Total allocated: %zu bytes.\n", size, start_index, total_allocated_memory);
@@ -91,24 +109,28 @@ void mem_free(void* block) {
         printf("Invalid block pointer. It does not belong to the memory pool.\n");
         return;
     }
+
     size_t start_index = (char*)block - memory_pool;
-    size_t freed_blocks = 0;
 
-    // Free contiguous allocated blocks starting from the block
-    while (start_index < pool_size && allocation_map[start_index]) {
-        allocation_map[start_index] = false;
-        start_index++;
-        freed_blocks++;
+    if (!allocation_map[start_index]) {
+        printf("Block at index %zu is already free.\n", start_index);
+        return;
     }
 
-    if (freed_blocks > total_allocated_memory) {
-        printf("Error: Freed blocks exceed total allocated memory.\n");
-        total_allocated_memory = 0;
-    } else {
-        total_allocated_memory -= freed_blocks;
+    size_t size = allocation_size_map[start_index];
+    if (size == 0) {
+        printf("No allocation size recorded for block at index %zu.\n", start_index);
+        return;
     }
 
-    printf("Memory block freed. Freed %zu bytes. Total allocated: %zu bytes.\n", freed_blocks, total_allocated_memory);
+    // Free the allocated blocks
+    for (size_t i = start_index; i < start_index + size; i++) {
+        allocation_map[i] = false;
+        allocation_size_map[i] = 0;
+    }
+
+    total_allocated_memory -= size;
+    printf("Memory block freed. Freed %zu bytes. Total allocated: %zu bytes.\n", size, total_allocated_memory);
 }
 
 // Resize Memory
@@ -117,25 +139,34 @@ void* mem_resize(void* block, size_t new_size) {
         return mem_alloc(new_size);
     }
 
+    if (new_size == 0) {
+        mem_free(block);
+        return NULL;
+    }
+
     size_t start_index = (char*)block - memory_pool;
-    size_t current_size = 0;
+    size_t current_size = allocation_size_map[start_index];
 
     // Determine the current size of the block
-    while (start_index + current_size < pool_size && allocation_map[start_index + current_size]) {
-        current_size++;
+    if (current_size == 0) {
+        printf("No allocation size recorded for block at index %zu.\n", start_index);
+        return NULL;
     }
 
     // If the new size is smaller or equal, free the extra space
     if (new_size <= current_size) {
         for (size_t i = start_index + new_size; i < start_index + current_size; i++) {
             allocation_map[i] = false;
+            allocation_size_map[i] = 0;
         }
         total_allocated_memory -= (current_size - new_size);
+        allocation_size_map[start_index] = new_size;
         printf("Resized block at index %zu to %zu bytes. Total allocated: %zu bytes.\n", start_index, new_size, total_allocated_memory);
         return block;
     }
 
     // Check if the block can be expanded in place
+    size_t required_size = new_size - current_size;
     size_t i;
     for (i = start_index + current_size; i < start_index + new_size; i++) {
         if (i >= pool_size || allocation_map[i]) {
@@ -148,6 +179,7 @@ void* mem_resize(void* block, size_t new_size) {
         for (size_t j = start_index + current_size; j < start_index + new_size; j++) {
             allocation_map[j] = true;
         }
+        allocation_size_map[start_index] = new_size;
         total_allocated_memory += (new_size - current_size);
         printf("Expanded block at index %zu to %zu bytes. Total allocated: %zu bytes.\n", start_index, new_size, total_allocated_memory);
         return block;
@@ -174,6 +206,11 @@ void mem_deinit() {
     if (allocation_map != NULL) {
         free(allocation_map);
         allocation_map = NULL;
+    }
+
+    if (allocation_size_map != NULL) {
+        free(allocation_size_map);
+        allocation_size_map = NULL;
     }
 
     total_allocated_memory = 0;
