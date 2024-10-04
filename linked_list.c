@@ -13,42 +13,42 @@
  * @return FILE* pointing to the original stdout before redirection, or NULL on failure.
  */
 FILE* redirect_stdout_to_null() {
-    fflush(stdout); // Flush any pending output
+    fflush(stdout); // Make sure all pending output is written out
 
-    // Open /dev/null for writing
+    // Open /dev/null so we can discard any output sent to stdout
     int dev_null = open("/dev/null", O_WRONLY);
     if (dev_null == -1) {
-        perror("open");
+        perror("open"); // Print error if opening /dev/null fails
         return NULL;
     }
 
-    // Duplicate the current stdout file descriptor
+    // Save the current stdout file descriptor
     int saved_stdout_fd = dup(fileno(stdout));
     if (saved_stdout_fd == -1) {
-        perror("dup");
-        close(dev_null);
+        perror("dup"); // Print error if duplicating fails
+        close(dev_null); // Clean up before returning
         return NULL;
     }
 
     // Redirect stdout to /dev/null
     if (dup2(dev_null, fileno(stdout)) == -1) {
-        perror("dup2");
+        perror("dup2"); // Print error if redirection fails
         close(dev_null);
         close(saved_stdout_fd);
         return NULL;
     }
 
-    close(dev_null); // Close the /dev/null file descriptor as it's no longer needed
+    close(dev_null); // No longer need the original /dev/null file descriptor
 
-    // Convert the saved file descriptor back to a FILE* stream
+    // Turn the saved file descriptor back into a FILE* stream
     FILE* saved_stdout = fdopen(saved_stdout_fd, "w");
     if (saved_stdout == NULL) {
-        perror("fdopen");
+        perror("fdopen"); // Print error if converting fails
         close(saved_stdout_fd);
         return NULL;
     }
 
-    return saved_stdout;
+    return saved_stdout; // Return the original stdout stream
 }
 
 /**
@@ -62,20 +62,20 @@ void restore_stdout_from_null(FILE* saved_stdout_fp) {
         return;
     }
 
-    fflush(stdout); // Flush any pending output
+    fflush(stdout); // Flush any output that's been redirected
 
-    // Duplicate the saved stdout back to the original stdout file descriptor
+    // Restore the original stdout file descriptor
     if (dup2(fileno(saved_stdout_fp), fileno(stdout)) == -1) {
-        perror("dup2");
+        perror("dup2"); // Print error if restoration fails
     }
 
-    fclose(saved_stdout_fp); // Close the saved stdout FILE* stream
+    fclose(saved_stdout_fp); // Close the saved stdout stream
 }
 
 /**
  * @brief Initializes the linked list and the memory manager.
  *
- * This function initializes the memory manager with a specified size and sets the head of the list to NULL.
+ * Sets up the memory manager with the given size and initializes the list head.
  *
  * @param head Pointer to the head of the linked list.
  * @param size Size of the memory pool in bytes.
@@ -83,24 +83,23 @@ void restore_stdout_from_null(FILE* saved_stdout_fp) {
 void list_init(Node** head, size_t size) {
     if (head == NULL) {
         printf("Error: head pointer is NULL in list_init.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // Can't proceed without a valid head pointer
     }
 
-    // Suppress stdout during mem_init to avoid debug prints
+    // Temporarily hide stdout to prevent mem_init from printing debug info
     FILE* saved_stdout = redirect_stdout_to_null();
     if (saved_stdout == NULL) {
         printf("Error: Failed to redirect stdout in list_init.\n");
         exit(EXIT_FAILURE);
     }
 
-    // Initialize memory manager
+    // Initialize the memory manager with the specified size
     mem_init(size);
 
-    // Restore stdout
+    // Bring stdout back to normal
     restore_stdout_from_null(saved_stdout);
 
-    // Initialize the head to NULL
-    *head = NULL;
+    *head = NULL; // Start with an empty list
 }
 
 /**
@@ -115,17 +114,17 @@ void list_insert(Node** head, uint16_t data) {
         return;
     }
 
-    // Suppress stdout during mem_alloc to avoid debug prints
+    // Hide stdout to prevent mem_alloc from printing debug info
     FILE* saved_stdout = redirect_stdout_to_null();
     if (saved_stdout == NULL) {
         printf("Error: Failed to redirect stdout in list_insert.\n");
         return;
     }
 
-    // Allocate memory for the new node using custom memory manager
+    // Allocate memory for the new node using the custom memory manager
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
 
-    // Restore stdout after mem_alloc
+    // Restore stdout after allocation
     restore_stdout_from_null(saved_stdout);
 
     if (new_node == NULL) {
@@ -133,20 +132,20 @@ void list_insert(Node** head, uint16_t data) {
         return;
     }
 
-    // Initialize the new node
+    // Set up the new node's data and next pointer
     new_node->data = data;
     new_node->next = NULL;
 
     if (*head == NULL) {
-        // If the list is empty, set the new node as head
+        // If the list is empty, the new node becomes the head
         *head = new_node;
     } else {
-        // Traverse to the end of the list
+        // Otherwise, find the last node
         Node* current = *head;
         while (current->next != NULL) {
             current = current->next;
         }
-        // Insert the new node at the end
+        // Link the new node at the end
         current->next = new_node;
     }
 }
@@ -163,17 +162,17 @@ void list_insert_after(Node* prev_node, uint16_t data) {
         return;
     }
 
-    // Suppress stdout during mem_alloc to avoid debug prints
+    // Hide stdout to prevent mem_alloc from printing debug info
     FILE* saved_stdout = redirect_stdout_to_null();
     if (saved_stdout == NULL) {
         printf("Error: Failed to redirect stdout in list_insert_after.\n");
         return;
     }
 
-    // Allocate memory for the new node using custom memory manager
+    // Allocate memory for the new node
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
 
-    // Restore stdout after mem_alloc
+    // Restore stdout after allocation
     restore_stdout_from_null(saved_stdout);
 
     if (new_node == NULL) {
@@ -181,7 +180,7 @@ void list_insert_after(Node* prev_node, uint16_t data) {
         return;
     }
 
-    // Initialize the new node
+    // Set up the new node's data and link it after prev_node
     new_node->data = data;
     new_node->next = prev_node->next;
     prev_node->next = new_node;
@@ -205,17 +204,17 @@ void list_insert_before(Node** head, Node* next_node, uint16_t data) {
         return;
     }
 
-    // Suppress stdout during mem_alloc to avoid debug prints
+    // Hide stdout to prevent mem_alloc from printing debug info
     FILE* saved_stdout = redirect_stdout_to_null();
     if (saved_stdout == NULL) {
         printf("Error: Failed to redirect stdout in list_insert_before.\n");
         return;
     }
 
-    // Allocate memory for the new node using custom memory manager
+    // Allocate memory for the new node
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
 
-    // Restore stdout after mem_alloc
+    // Restore stdout after allocation
     restore_stdout_from_null(saved_stdout);
 
     if (new_node == NULL) {
@@ -223,15 +222,15 @@ void list_insert_before(Node** head, Node* next_node, uint16_t data) {
         return;
     }
 
-    // Initialize the new node
+    // Set the new node's data
     new_node->data = data;
 
     if (*head == next_node) {
-        // Inserting before the head node
+        // If we're inserting before the head, update the head pointer
         new_node->next = *head;
         *head = new_node;
     } else {
-        // Traverse the list to find the node before next_node
+        // Find the node just before next_node
         Node* current = *head;
         while (current != NULL && current->next != next_node) {
             current = current->next;
@@ -239,7 +238,7 @@ void list_insert_before(Node** head, Node* next_node, uint16_t data) {
 
         if (current == NULL) {
             printf("Error: next_node not found in the list.\n");
-            // Suppress stdout during mem_free to avoid debug prints
+            // Free the allocated node since we can't insert it
             FILE* saved_free_stdout = redirect_stdout_to_null();
             mem_free(new_node);
             restore_stdout_from_null(saved_free_stdout);
@@ -272,7 +271,7 @@ void list_delete(Node** head, uint16_t data) {
     Node* current = *head;
     Node* prev = NULL;
 
-    // Traverse the list to find the node to delete
+    // Search for the node to delete
     while (current != NULL && current->data != data) {
         prev = current;
         current = current->next;
@@ -284,16 +283,16 @@ void list_delete(Node** head, uint16_t data) {
     }
 
     if (prev == NULL) {
-        // The node to delete is the head
+        // If the node to delete is the head, update the head pointer
         *head = current->next;
     } else {
-        // The node to delete is in the middle or end
+        // Otherwise, unlink the node from the list
         prev->next = current->next;
     }
 
-    // Suppress stdout during mem_free to avoid debug prints
+    // Hide stdout to prevent mem_free from printing debug info
     FILE* saved_stdout = redirect_stdout_to_null();
-    mem_free(current);
+    mem_free(current); // Free the memory of the deleted node
     restore_stdout_from_null(saved_stdout);
 }
 
@@ -312,15 +311,15 @@ Node* list_search(Node** head, uint16_t data) {
 
     Node* current = *head;
 
-    // Traverse the list to find the node
+    // Look through the list for the data
     while (current != NULL) {
         if (current->data == data) {
-            return current;
+            return current; // Found the node
         }
         current = current->next;
     }
 
-    // Node not found
+    // Didn't find the node
     return NULL;
 }
 
@@ -344,7 +343,7 @@ void list_display(Node** head) {
         }
         current = current->next;
     }
-    printf("]"); // Removed the newline character to match expected output
+    printf("]"); // Keeping output consistent without adding a newline
 }
 
 /**
@@ -363,29 +362,29 @@ void list_display_range(Node** head, Node* start_node, Node* end_node) {
     printf("[");
     Node* current = *head;
 
-    // If start_node is specified, find it
+    // If a start_node is provided, find it first
     if (start_node != NULL) {
         while (current != NULL && current != start_node) {
             current = current->next;
         }
         if (current == NULL) {
-            printf("]"); // start_node not found
+            printf("]"); // start_node not found; nothing to display
             return;
         }
     }
 
-    // Iterate and print until end_node is reached
+    // Now, print nodes until we reach end_node
     while (current != NULL) {
         printf("%u", current->data);
         if (current == end_node) {
-            break;
+            break; // Reached the end of the range
         }
         if (current->next != NULL) {
             printf(", ");
         }
         current = current->next;
     }
-    printf("]"); // Removed the newline character to match expected output
+    printf("]"); // Consistent output formatting
 }
 
 /**
@@ -403,6 +402,7 @@ int list_count_nodes(Node** head) {
     int count = 0;
     Node* current = *head;
 
+    // Simply traverse the list and count nodes
     while (current != NULL) {
         count++;
         current = current->next;
@@ -427,15 +427,15 @@ void list_cleanup(Node** head) {
         Node* temp = current;
         current = current->next;
 
-        // Suppress stdout during mem_free to avoid debug prints
+        // Hide stdout to prevent mem_free from printing debug info
         FILE* saved_stdout = redirect_stdout_to_null();
-        mem_free(temp);
+        mem_free(temp); // Free each node
         restore_stdout_from_null(saved_stdout);
     }
 
-    *head = NULL;
+    *head = NULL; // Reset the head pointer
 
-    // Suppress stdout during mem_deinit to avoid debug prints
+    // Finally, deinitialize the memory manager
     FILE* saved_deinit_stdout = redirect_stdout_to_null();
     mem_deinit();
     restore_stdout_from_null(saved_deinit_stdout);
