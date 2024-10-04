@@ -11,5 +11,6 @@ void mem_free(void* block);
 void* mem_resize(void* block, size_t new_size);
 void mem_deinit();
 void print_allocation_map();
+void main();
 
 #endif // MEMORY_MANAGER_H
