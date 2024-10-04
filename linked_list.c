@@ -1,31 +1,33 @@
+// File: src/linked_list.c
+
 #include "linked_list.h"
 #include "memory_manager.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
 
 /**
  * Initializes the linked list.
- * Sets the head pointer to NULL and initializes the memory manager with the given size.
- * 
- * @param head Pointer to the head pointer of the list.
- * @param size Size of the memory pool to initialize.
  */
 void list_init(Node** head, size_t size) {
     if (head == NULL) {
         printf("Error: head pointer is NULL in list_init.\n");
         return;
     }
+
     *head = NULL;
-    mem_init(size);
+
+    if (!mem_init(size)) {
+        printf("Error: Memory manager initialization failed in list_init.\n");
+        return;
+    }
+
     printf("Linked list initialized with memory pool size %zu bytes.\n", size);
 }
 
 /**
- * Inserts a new node with the given data at the end of the list.
- * 
- * @param head Pointer to the head pointer of the list.
- * @param data Data to insert.
+ * Inserts a new node at the end of the list.
  */
 void list_insert(Node** head, uint16_t data) {
     if (head == NULL) {
@@ -34,7 +36,7 @@ void list_insert(Node** head, uint16_t data) {
     }
 
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
-    if (!new_node) {
+    if (new_node == NULL) {
         printf("Memory allocation failed for new node in list_insert!\n");
         return;
     }
@@ -56,10 +58,7 @@ void list_insert(Node** head, uint16_t data) {
 }
 
 /**
- * Inserts a new node with the given data after the specified node.
- * 
- * @param prev_node The node after which to insert the new node.
- * @param data Data to insert.
+ * Inserts a new node after the specified node.
  */
 void list_insert_after(Node* prev_node, uint16_t data) {
     if (prev_node == NULL) {
@@ -68,7 +67,7 @@ void list_insert_after(Node* prev_node, uint16_t data) {
     }
 
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
-    if (!new_node) {
+    if (new_node == NULL) {
         printf("Memory allocation failed for new node in list_insert_after!\n");
         return;
     }
@@ -81,11 +80,7 @@ void list_insert_after(Node* prev_node, uint16_t data) {
 }
 
 /**
- * Inserts a new node with the given data before the specified node.
- * 
- * @param head Pointer to the head pointer of the list.
- * @param next_node The node before which to insert the new node.
- * @param data Data to insert.
+ * Inserts a new node before the specified node.
  */
 void list_insert_before(Node** head, Node* next_node, uint16_t data) {
     if (head == NULL) {
@@ -99,12 +94,14 @@ void list_insert_before(Node** head, Node* next_node, uint16_t data) {
     }
 
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
-    if (!new_node) {
+    if (new_node == NULL) {
         printf("Memory allocation failed for new node in list_insert_before!\n");
         return;
     }
+
     new_node->data = data;
 
+    // If the next_node is the head
     if (*head == next_node) {
         new_node->next = *head;
         *head = new_node;
@@ -112,6 +109,7 @@ void list_insert_before(Node** head, Node* next_node, uint16_t data) {
         return;
     }
 
+    // Find the node before next_node
     Node* temp = *head;
     while (temp != NULL && temp->next != next_node) {
         temp = temp->next;
@@ -128,10 +126,7 @@ void list_insert_before(Node** head, Node* next_node, uint16_t data) {
 }
 
 /**
- * Deletes the first node with the specified data from the list.
- * 
- * @param head Pointer to the head pointer of the list.
- * @param data Data of the node to delete.
+ * Deletes the first node with the specified data.
  */
 void list_delete(Node** head, uint16_t data) {
     if (head == NULL) {
@@ -147,7 +142,7 @@ void list_delete(Node** head, uint16_t data) {
     Node* temp = *head;
     Node* prev = NULL;
 
-    // If head node itself holds the data to be deleted
+    // If head node holds the data
     if (temp != NULL && temp->data == data) {
         *head = temp->next;
         mem_free(temp);
@@ -155,31 +150,26 @@ void list_delete(Node** head, uint16_t data) {
         return;
     }
 
-    // Search for the data to be deleted, keep track of the previous node
+    // Search for the data to delete
     while (temp != NULL && temp->data != data) {
         prev = temp;
         temp = temp->next;
     }
 
-    // If data was not present in the list
+    // Data not found
     if (temp == NULL) {
         printf("Node with data %u not found. Cannot delete.\n", data);
         return;
     }
 
-    // Unlink the node from linked list
+    // Unlink the node
     prev->next = temp->next;
-
     mem_free(temp);
     printf("Deleted node with data %u from the list.\n", data);
 }
 
 /**
  * Searches for the first node with the specified data.
- * 
- * @param head Pointer to the head pointer of the list.
- * @param data Data to search for.
- * @return Pointer to the node if found, NULL otherwise.
  */
 Node* list_search(Node** head, uint16_t data) {
     if (head == NULL) {
@@ -188,7 +178,6 @@ Node* list_search(Node** head, uint16_t data) {
     }
 
     Node* temp = *head;
-
     while (temp != NULL) {
         if (temp->data == data) {
             printf("Found node with data %u.\n", data);
@@ -203,8 +192,6 @@ Node* list_search(Node** head, uint16_t data) {
 
 /**
  * Displays the entire linked list.
- * 
- * @param head Pointer to the head pointer of the list.
  */
 void list_display(Node** head) {
     if (head == NULL) {
@@ -214,6 +201,7 @@ void list_display(Node** head) {
 
     Node* temp = *head;
     printf("Full list: [");
+
     while (temp != NULL) {
         printf("%u", temp->data);
         temp = temp->next;
@@ -221,48 +209,56 @@ void list_display(Node** head) {
             printf(", ");
         }
     }
+
     printf("]\n");
 }
 
+/**
+ * Displays a range of nodes from start_node to end_node inclusive.
+ */
 void list_display_range(Node** head, Node* start_node, Node* end_node) {
-    if (head == NULL || *head == NULL) {
-        printf("Error: List is empty or head pointer is NULL in list_display_range.\n");
+    if (head == NULL) {
+        printf("Error: head pointer is NULL in list_display_range.\n");
         return;
     }
 
-    if (start_node == NULL || end_node == NULL) {
-        printf("Error: start_node or end_node is NULL in list_display_range.\n");
+    if (start_node == NULL) {
+        printf("Error: start_node is NULL in list_display_range.\n");
+        return;
+    }
+
+    if (end_node == NULL) {
+        printf("Error: end_node is NULL in list_display_range.\n");
         return;
     }
 
     Node* temp = *head;
-    bool in_range = false;
 
-    printf("List Range: [");
-    while (temp != NULL) {
-        if (temp == start_node) {
-            in_range = true;
-        }
-
-        if (in_range) {
-            printf("%u", temp->data);
-            if (temp != end_node) {
-                printf(", ");
-            } else {
-                break;  // We've reached the end_node, so stop here
-            }
-        }
-
+    // Find the start_node
+    while (temp != NULL && temp != start_node) {
         temp = temp->next;
     }
+
+    if (temp == NULL) {
+        printf("Start node not found in list_display_range.\n");
+        return;
+    }
+
+    printf("List Range: [");
+
+    while (temp != NULL && temp != end_node->next) {
+        printf("%u", temp->data);
+        temp = temp->next;
+        if (temp != NULL && temp != end_node->next) {
+            printf(", ");
+        }
+    }
+
     printf("]\n");
 }
 
 /**
  * Counts the number of nodes in the list.
- * 
- * @param head Pointer to the head pointer of the list.
- * @return Number of nodes in the list.
  */
 int list_count_nodes(Node** head) {
     if (head == NULL) {
@@ -284,8 +280,6 @@ int list_count_nodes(Node** head) {
 
 /**
  * Cleans up the list by freeing all nodes and deinitializing the memory manager.
- * 
- * @param head Pointer to the head pointer of the list.
  */
 void list_cleanup(Node** head) {
     if (head == NULL) {
@@ -303,6 +297,8 @@ void list_cleanup(Node** head) {
     }
 
     *head = NULL;
+
     mem_deinit();
+
     printf("Linked list cleaned up and memory pool deinitialized.\n");
 }
