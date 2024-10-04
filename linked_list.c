@@ -8,7 +8,6 @@
 
 
 #define POOL_SIZE 2048  // Define the size of the memory pool
-
 //Pointer to the beginning of the memory pool
 static char *memory_pool = NULL;
 //Array to track which parts of the pool are allocated
@@ -44,8 +43,8 @@ void mem_init(size_t size) {
 }
 
 void* mem_alloc(size_t size) {
-    size_t free_blocks = 0;
-    size_t start_index = 0;
+    size_t free_blocks = 0;  // To count contiguous free blocks
+    size_t start_index = 0;  // To record where the free block starts
 
     // Check if memory pool is initialized
     if (memory_pool == NULL || allocation_map == NULL) {
@@ -53,7 +52,7 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // First-fit strategy: find the first contiguous free block big enough
+    // First-fit strategy: find the first free block big enough
     for (size_t i = 0; i < POOL_SIZE; i++) {
         if (!allocation_map[i]) {
             // Start counting free blocks
@@ -68,16 +67,17 @@ void* mem_alloc(size_t size) {
                 for (size_t j = start_index; j < start_index + size; j++) {
                     allocation_map[j] = true;
                 }
+                // Return pointer to the start of the allocated block
                 return memory_pool + start_index;
             }
         } else {
-            // Reset the free block counter if we hit an allocated block
+            // Reset free block counter if we hit an allocated block
             free_blocks = 0;
         }
     }
 
     // If we exit the loop, no suitable block was found
-    printf("Not enough contiguous memory available to allocate %zu bytes.\n", size);
+    printf("Not enough memory available to allocate %zu bytes.\n", size);
     return NULL;
 }
 
@@ -170,7 +170,7 @@ void print_allocation_map() {
 // Node structure for the linked list
 //typedef struct Node {
  //   uint16_t data;          // Stores the data as an unsigned 16-bit integer
-//    struct Node* next;      // A pointer to the next node in the list
+ //   struct Node* next;      // A pointer to the next node in the list
 //} Node;
 
 // Linked list functions
@@ -361,5 +361,3 @@ void list_cleanup(Node** head) {
     }
     *head = NULL; // Set head to NULL after cleanup
 }
-
-
