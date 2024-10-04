@@ -6,7 +6,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define POOL_SIZE 2024  // Define the size of the memory pool
+
+#define POOL_SIZE 2048  // Define the size of the memory pool
 
 //Pointer to the beginning of the memory pool
 static char *memory_pool = NULL;
@@ -43,8 +44,8 @@ void mem_init(size_t size) {
 }
 
 void* mem_alloc(size_t size) {
-    size_t free_blocks = 0;
-    size_t start_index = 0;
+    size_t free_blocks = 0;  // To count contiguous free blocks
+    size_t start_index = 0;  // To record where the free block starts
 
     // Check if memory pool is initialized
     if (memory_pool == NULL || allocation_map == NULL) {
@@ -52,7 +53,7 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // First-fit strategy: find the first contiguous free block big enough
+    // First-fit strategy: find the first free block big enough
     for (size_t i = 0; i < POOL_SIZE; i++) {
         if (!allocation_map[i]) {
             // Start counting free blocks
@@ -67,19 +68,19 @@ void* mem_alloc(size_t size) {
                 for (size_t j = start_index; j < start_index + size; j++) {
                     allocation_map[j] = true;
                 }
+                // Return pointer to the start of the allocated block
                 return memory_pool + start_index;
             }
         } else {
-            // Reset the free block counter if we hit an allocated block
+            // Reset free block counter if we hit an allocated block
             free_blocks = 0;
         }
     }
 
     // If we exit the loop, no suitable block was found
-    printf("Not enough contiguous memory available to allocate %zu bytes.\n", size);
+    printf("Not enough memory available to allocate %zu bytes.\n", size);
     return NULL;
 }
-
 
 void mem_free(void* block) {
     if (block == NULL || (char*)block < memory_pool || (char*)block >= memory_pool + POOL_SIZE) {
@@ -96,7 +97,6 @@ void mem_free(void* block) {
 
     printf("Memory block freed.\n");
 }
-
 
 void* mem_resize(void* block, size_t new_size) {
     if (block == NULL) {
@@ -170,8 +170,8 @@ void print_allocation_map() {
 
 // Node structure for the linked list
 //typedef struct Node {
-//  uint16_t data;          // Stores the data as an unsigned 16-bit integer
-//  struct Node* next;      // A pointer to the next node in the list
+ //   uint16_t data;          // Stores the data as an unsigned 16-bit integer
+//    struct Node* next;      // A pointer to the next node in the list
 //} Node;
 
 // Linked list functions
@@ -361,5 +361,45 @@ void list_cleanup(Node** head) {
         temp = next_node;
     }
     *head = NULL; // Set head to NULL after cleanup
+}
+
+int main() {
+    Node* head = NULL;
+
+    // Initialize linked list with custom memory manager size
+    list_init(&head, 1024);
+
+    // Insert elements
+    list_insert(&head, 10);
+    list_display(&head); // Print after inserting 10, Expected output: [10]
+
+    list_insert(&head, 20);
+    list_display(&head); // Print after inserting 20, Expected output: [10, 20]
+
+    list_insert(&head, 30);
+    list_display(&head); // Print after inserting 30, Expected output: [10, 20, 30]
+
+    // Insert after and before
+    Node* node = list_search(&head, 20);
+    list_insert_after(node, 25);
+    list_display(&head); // Expected output: [10, 20, 25, 30]
+
+    list_insert_before(&head, node, 15);
+    list_display(&head); // Expected output: [10, 15, 20, 25, 30]
+
+    // Delete a node
+    list_delete(&head, 20);
+    list_display(&head); // Expected output: [10, 15, 25, 30]
+
+    // Count nodes
+    printf("Node count: %d\n", list_count_nodes(&head)); // Expected output: 4
+
+    // Cleanup linked list
+    list_cleanup(&head);
+    list_display(&head); // Expected output: []
+
+    // Deinitialize memory pool
+    mem_deinit();
+    return 0;
 }
 

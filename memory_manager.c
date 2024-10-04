@@ -4,50 +4,44 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define POOL_SIZE 1024  // Define the size of the memory pool
+#define POOL_SIZE 2048  // Define the size of the memory pool
 
 // Pointer to the beginning of the memory pool
 char *memory_pool = NULL;
 // Array to track which parts of the pool are allocated
 bool *allocation_map = NULL;
 
-void mem_init(size_t size){
-    // pointing to the start of the memory block,
-    // we have been given by the function malloc.
-    // The malloc function will return a pointer, pointing 
-    // to the beginning of the block
+void mem_init(size_t size) {
     if (size == 0) {
-    printf("Size must be greater than zero.\n");
-    exit(1);
-    }
-    memory_pool = (char*)malloc(size);
-    //if there is no memory available
-    if(memory_pool == NULL){
-        printf("Memory pool allocation failed!\n");
-        exit(1);  // Exit the program if allocation fails
-    }
-    //This means we are allocating enough 
-    // space for an array of 10 bool elements.
-    //this is to check and see which parts of memory_pool are empty and can store 
-    // bytes in
-    allocation_map = (bool*)malloc(size * sizeof(bool));
-    // check if there is enough memory for the allocation_map memory block,
-    // if not exit the program and empty memory_pool
-    if (allocation_map == NULL) {
-        printf("Allocation map creation failed!\n");
-        free(memory_pool);  // Free the memory pool
+        printf("Size must be greater than zero.\n");
         exit(1);
     }
+
+    // Initialize the memory pool and allocation map
+    memory_pool = (char*)malloc(size);
+    if (memory_pool == NULL) {
+        printf("Memory pool allocation failed!\n");
+        exit(1);
+    }
+
+    allocation_map = (bool*)malloc(size * sizeof(bool));
+    if (allocation_map == NULL) {
+        printf("Allocation map creation failed!\n");
+        free(memory_pool);
+        exit(1);
+    }
+
     // Initialize the allocation map to false (all memory is free)
     for (size_t i = 0; i < size; i++) {
         allocation_map[i] = false;  // Mark all blocks as free
     }
-    printf("Memory pool of size %zu bytes initialized.\n", size);
 
+    printf("Memory pool of size %zu bytes initialized.\n", size);
 }
+
 void* mem_alloc(size_t size) {
-    size_t free_blocks = 0;
-    size_t start_index = 0;
+    size_t free_blocks = 0;  // To count contiguous free blocks
+    size_t start_index = 0;  // To record where the free block starts
 
     // Check if memory pool is initialized
     if (memory_pool == NULL || allocation_map == NULL) {
@@ -55,7 +49,7 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // First-fit strategy: find the first contiguous free block big enough
+    // First-fit strategy: find the first free block big enough
     for (size_t i = 0; i < POOL_SIZE; i++) {
         if (!allocation_map[i]) {
             // Start counting free blocks
@@ -70,19 +64,19 @@ void* mem_alloc(size_t size) {
                 for (size_t j = start_index; j < start_index + size; j++) {
                     allocation_map[j] = true;
                 }
+                // Return pointer to the start of the allocated block
                 return memory_pool + start_index;
             }
         } else {
-            // Reset the free block counter if we hit an allocated block
+            // Reset free block counter if we hit an allocated block
             free_blocks = 0;
         }
     }
 
     // If we exit the loop, no suitable block was found
-    printf("Not enough contiguous memory available to allocate %zu bytes.\n", size);
+    printf("Not enough memory available to allocate %zu bytes.\n", size);
     return NULL;
 }
-
 
 void mem_free(void* block) {
     if (block == NULL || (char*)block < memory_pool || (char*)block >= memory_pool + POOL_SIZE) {
@@ -99,8 +93,6 @@ void mem_free(void* block) {
 
     printf("Memory block freed.\n");
 }
-
-
 
 void* mem_resize(void* block, size_t new_size) {
     if (block == NULL) {
@@ -170,5 +162,37 @@ void print_allocation_map() {
         printf("%d", allocation_map[i]);
     }
     printf("\n");
+}
+
+// Main test function
+int main() {
+    // Initialize the memory pool
+    mem_init(POOL_SIZE);
+
+    // Test allocation
+    void* block1 = mem_alloc(100);
+    if (block1) {
+        printf("Successfully allocated 100 bytes.\n");
+    }
+
+    // Test allocation of another block
+    void* block2 = mem_alloc(200);
+    if (block2) {
+        printf("Successfully allocated 200 bytes.\n");
+    }
+
+    // Test freeing the first block
+    mem_free(block1);
+    printf("Freed the first block.\n");
+
+    // Test resizing the second block
+    void* resized_block = mem_resize(block2, 250);
+    if (resized_block) {
+        printf("Successfully resized block2 to 250 bytes.\n");
+    }
+
+    // Test deinitializing the memory pool
+    mem_deinit();
+    return 0;
 }
 
