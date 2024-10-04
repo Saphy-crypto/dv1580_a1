@@ -2,6 +2,7 @@
 #include "memory_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /**
  * Initializes the linked list.
@@ -223,48 +224,36 @@ void list_display(Node** head) {
     printf("]\n");
 }
 
-/**
- * Displays a range of nodes from start_node to end_node inclusive.
- * 
- * @param head Pointer to the head pointer of the list.
- * @param start_node Starting node of the range.
- * @param end_node Ending node of the range.
- */
 void list_display_range(Node** head, Node* start_node, Node* end_node) {
-    if (head == NULL) {
-        printf("Error: head pointer is NULL in list_display_range.\n");
+    if (head == NULL || *head == NULL) {
+        printf("Error: List is empty or head pointer is NULL in list_display_range.\n");
         return;
     }
 
-    if (start_node == NULL) {
-        printf("Error: start_node is NULL in list_display_range.\n");
-        return;
-    }
-
-    if (end_node == NULL) {
-        printf("Error: end_node is NULL in list_display_range.\n");
+    if (start_node == NULL || end_node == NULL) {
+        printf("Error: start_node or end_node is NULL in list_display_range.\n");
         return;
     }
 
     Node* temp = *head;
-
-    // Find the start_node
-    while (temp != NULL && temp != start_node) {
-        temp = temp->next;
-    }
-
-    if (temp == NULL) {
-        printf("Start node not found in list_display_range.\n");
-        return;
-    }
+    bool in_range = false;
 
     printf("List Range: [");
-    while (temp != NULL && temp != end_node->next) {
-        printf("%u", temp->data);
-        temp = temp->next;
-        if (temp != NULL && temp != end_node->next) {
-            printf(", ");
+    while (temp != NULL) {
+        if (temp == start_node) {
+            in_range = true;
         }
+
+        if (in_range) {
+            printf("%u", temp->data);
+            if (temp != end_node) {
+                printf(", ");
+            } else {
+                break;  // We've reached the end_node, so stop here
+            }
+        }
+
+        temp = temp->next;
     }
     printf("]\n");
 }
