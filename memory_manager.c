@@ -10,7 +10,7 @@
 char *memory_pool = NULL;
 // Array to track which parts of the pool are allocated
 bool *allocation_map = NULL;
-
+static size_t total_allocated_memory = 0;  // Track total allocated memory
 void mem_init(size_t size) {
     if (size == 0) {
         printf("Size must be greater than zero.\n");
@@ -39,6 +39,7 @@ void mem_init(size_t size) {
     printf("Memory pool of size %zu bytes initialized.\n", size);
 }
 
+
 void* mem_alloc(size_t size) {
     size_t free_blocks = 0;
     size_t start_index = 0;
@@ -49,17 +50,9 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // Calculate the total allocated memory
-    size_t total_allocated = 0;
-    for (size_t i = 0; i < POOL_SIZE; i++) {
-        if (allocation_map[i]) {
-            total_allocated++;
-        }
-    }
-
-    // Check if the allocation would exceed the total available memory
-    if (total_allocated + size > POOL_SIZE) {
-        printf("Cumulative allocations exceed total available memory.\n");
+    // Check if requested allocation exceeds the remaining memory
+    if (total_allocated_memory + size > POOL_SIZE) {
+        printf("Not enough memory available to allocate %zu bytes. Total allocated: %zu bytes.\n", size, total_allocated_memory);
         return NULL;
     }
 
@@ -78,6 +71,7 @@ void* mem_alloc(size_t size) {
                 for (size_t j = start_index; j < start_index + size; j++) {
                     allocation_map[j] = true;
                 }
+                total_allocated_memory += size;  // Update total allocated memory
                 return memory_pool + start_index;
             }
         } else {
@@ -98,14 +92,18 @@ void mem_free(void* block) {
         printf("Invalid block pointer. It does not belong to the memory pool.\n");
         return;
     }
+
     size_t start_index = (char*)block - memory_pool;
+    size_t freed_blocks = 0;
 
     // Free contiguous allocated blocks starting from the block
     while (start_index < POOL_SIZE && allocation_map[start_index]) {
         allocation_map[start_index] = false;
         start_index++;
+        freed_blocks++;
     }
 
+    total_allocated_memory -= freed_blocks;  // Decrease total allocated memory
     printf("Memory block freed.\n");
 }
 
