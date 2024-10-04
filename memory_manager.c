@@ -40,8 +40,8 @@ void mem_init(size_t size) {
 }
 
 void* mem_alloc(size_t size) {
-    size_t best_fit_index = -1;
-    size_t best_fit_size = POOL_SIZE;
+    size_t free_blocks = 0;
+    size_t start_index = 0;
 
     // Check if memory pool is initialized
     if (memory_pool == NULL || allocation_map == NULL) {
@@ -49,40 +49,47 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // Iterate through the allocation map to find the best fit
+    // Calculate the total allocated memory
+    size_t total_allocated = 0;
+    for (size_t i = 0; i < POOL_SIZE; i++) {
+        if (allocation_map[i]) {
+            total_allocated++;
+        }
+    }
+
+    // Check if the allocation would exceed the total available memory
+    if (total_allocated + size > POOL_SIZE) {
+        printf("Cumulative allocations exceed total available memory.\n");
+        return NULL;
+    }
+
+    // First-fit strategy: find the first contiguous free block big enough
     for (size_t i = 0; i < POOL_SIZE; i++) {
         if (!allocation_map[i]) {
             // Start counting free blocks
-            size_t free_blocks = 1;
-            size_t start_index = i;
-
-            // Count contiguous free blocks
-            while (i + free_blocks < POOL_SIZE && !allocation_map[i + free_blocks]) {
-                free_blocks++;
+            if (free_blocks == 0) {
+                start_index = i;
             }
+            free_blocks++;
 
-            // Check if this block is a better fit than the current best fit
-            if (free_blocks >= size && free_blocks < best_fit_size) {
-                best_fit_index = start_index;
-                best_fit_size = free_blocks;
+            // If we've found enough free blocks, allocate memory
+            if (free_blocks == size) {
+                // Mark these blocks as allocated
+                for (size_t j = start_index; j < start_index + size; j++) {
+                    allocation_map[j] = true;
+                }
+                return memory_pool + start_index;
             }
+        } else {
+            // Reset the free block counter if we hit an allocated block
+            free_blocks = 0;
         }
     }
 
-    // If a best fit was found, allocate the memory
-    if (best_fit_index != -1) {
-        // Mark these blocks as allocated
-        for (size_t j = best_fit_index; j < best_fit_index + size; j++) {
-            allocation_map[j] = true;
-        }
-        return memory_pool + best_fit_index;
-    }
-
-    // If no best fit was found, return NULL
-    printf("Not enough memory available to allocate %zu bytes.\n", size);
+    // If we exit the loop, no suitable block was found
+    printf("Not enough contiguous memory available to allocate %zu bytes.\n", size);
     return NULL;
 }
-
 
 
 
