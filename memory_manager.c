@@ -4,11 +4,13 @@
 #include <stdbool.h>
 #include <string.h>
 
+// Global Variables
 static char *memory_pool = NULL;
 static bool *allocation_map = NULL;
 static size_t total_allocated_memory = 0;  // Track total allocated memory
 static size_t pool_size = 0;               // Dynamic pool size
 
+// Initialize Memory Pool
 void mem_init(size_t size) {
     if (size == 0) {
         printf("Size must be greater than zero.\n");
@@ -40,6 +42,7 @@ void mem_init(size_t size) {
     printf("Memory pool of size %zu bytes initialized.\n", size);
 }
 
+// Allocate Memory
 void* mem_alloc(size_t size) {
     size_t free_blocks = 0;
     size_t start_index = 0;
@@ -82,6 +85,7 @@ void* mem_alloc(size_t size) {
     return NULL;
 }
 
+// Free Memory
 void mem_free(void* block) {
     if (block == NULL || (char*)block < memory_pool || (char*)block >= memory_pool + pool_size) {
         printf("Invalid block pointer. It does not belong to the memory pool.\n");
@@ -107,6 +111,7 @@ void mem_free(void* block) {
     printf("Memory block freed. Freed %zu bytes. Total allocated: %zu bytes.\n", freed_blocks, total_allocated_memory);
 }
 
+// Resize Memory
 void* mem_resize(void* block, size_t new_size) {
     if (block == NULL) {
         return mem_alloc(new_size);
@@ -159,6 +164,7 @@ void* mem_resize(void* block, size_t new_size) {
     return new_block;
 }
 
+// Deinitialize Memory Pool
 void mem_deinit() {
     if (memory_pool != NULL) {
         free(memory_pool);
@@ -176,6 +182,7 @@ void mem_deinit() {
     printf("Memory pool deinitialized.\n");
 }
 
+// Print Allocation Map (for debugging)
 void print_allocation_map() {
     printf("Allocation Map: ");
     for (size_t i = 0; i < pool_size; i++) {
