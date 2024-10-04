@@ -50,7 +50,7 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // Check if requested allocation exceeds the remaining memory
+    // Check if requested allocation exceeds the remaining available memory
     if (total_allocated_memory + size > POOL_SIZE) {
         printf("Not enough memory available to allocate %zu bytes. Total allocated: %zu bytes.\n", size, total_allocated_memory);
         return NULL;
@@ -85,14 +85,11 @@ void* mem_alloc(size_t size) {
     return NULL;
 }
 
-
-
 void mem_free(void* block) {
     if (block == NULL || (char*)block < memory_pool || (char*)block >= memory_pool + POOL_SIZE) {
         printf("Invalid block pointer. It does not belong to the memory pool.\n");
         return;
     }
-
     size_t start_index = (char*)block - memory_pool;
     size_t freed_blocks = 0;
 
@@ -106,7 +103,6 @@ void mem_free(void* block) {
     total_allocated_memory -= freed_blocks;  // Decrease total allocated memory
     printf("Memory block freed.\n");
 }
-
 
 void* mem_resize(void* block, size_t new_size) {
     if (block == NULL) {
