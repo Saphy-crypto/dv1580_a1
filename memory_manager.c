@@ -71,65 +71,52 @@ void mem_init(size_t size) {
 void* mem_alloc(size_t size) {
     if (size == 0) {
         printf("Cannot allocate 0 bytes.\n");
-        return NULL;
+        return NULL; // No point in allocating zero bytes
     }
 
+    // Ensure the memory pool is initialized
     if (memory_pool == NULL || allocation_map == NULL || allocation_size_map == NULL) {
         printf("Memory pool is not initialized.\n");
         return NULL;
     }
 
+    // Check if there's enough memory left
     if (total_allocated_memory + size > pool_size) {
-        printf("Not enough memory available.\n");
+        printf("Not enough memory available to allocate %zu bytes. Total allocated: %zu bytes.\n", size, total_allocated_memory);
         return NULL;
     }
 
-    size_t free_blocks = 0;
-    size_t start_index = 0;
+    size_t free_blocks = 0;  // Counts consecutive free blocks
+    size_t start_index = 0;  // Starting index of a potential free block
 
-    // First-fit strategy with a double-check to prevent overlapping issues
+    // First-fit strategy: find the first block that fits
     for (size_t i = 0; i < pool_size; i++) {
-        if (!allocation_map[i]) {
+        if (!allocation_map[i]) { // If the block is free
             if (free_blocks == 0) {
-                start_index = i;  // Mark potential start of free region
+                start_index = i; // Potential start of free block
             }
             free_blocks++;
 
             if (free_blocks == size) {
-                // Double-check the entire region is actually free
-                bool is_region_free = true;
+                // Found a suitable block; mark it as allocated
                 for (size_t j = start_index; j < start_index + size; j++) {
-                    if (allocation_map[j]) {
-                        is_region_free = false;
-                        break;
-                    }
+                    allocation_map[j] = true;
                 }
+                allocation_size_map[start_index] = size; // Record the size
+                total_allocated_memory += size;
 
-                if (is_region_free) {
-                    // Mark region as allocated
-                    for (size_t j = start_index; j < start_index + size; j++) {
-                        allocation_map[j] = true;
-                    }
-                    allocation_size_map[start_index] = size;  // Record the size
-                    total_allocated_memory += size;
-
-                    printf("Allocated %zu bytes at index %zu. Total allocated: %zu bytes.\n", size, start_index, total_allocated_memory);
-                    return memory_pool + start_index;
-                } else {
-                    // Reset free_blocks count and continue searching
-                    free_blocks = 0;
-                }
+                printf("Allocated %zu bytes at index %zu. Total allocated: %zu bytes.\n", size, start_index, total_allocated_memory);
+                return memory_pool + start_index; // Return pointer to allocated memory
             }
         } else {
-            free_blocks = 0;  // Reset if the current block is not free
+            free_blocks = 0; // Reset if block is not free
         }
     }
 
-    // No suitable block was found
+    // If we reach here, no suitable block was found
     printf("Not enough contiguous memory available to allocate %zu bytes.\n", size);
     return NULL;
 }
-
 
 /**
  * @brief Free a previously allocated block of memory.
