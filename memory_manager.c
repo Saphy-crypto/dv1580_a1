@@ -70,8 +70,10 @@ void mem_init(size_t size) {
  */
 void* mem_alloc(size_t size) {
     if (size == 0) {
-        printf("Cannot allocate 0 bytes.\n");
-        return NULL; // No point in allocating zero bytes
+        // Handle zero-size allocation by returning a valid pointer without reserving memory.
+        // We can simply return the start of the memory pool for simplicity.
+        printf("Allocating 0 bytes. Returning a placeholder pointer.\n");
+        return memory_pool;  // Return a valid pointer, such as the start of the memory pool.
     }
 
     // Ensure the memory pool is initialized
