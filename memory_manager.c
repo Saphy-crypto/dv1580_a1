@@ -12,7 +12,7 @@ static bool *allocation_map = NULL;        // Tracks which bytes are allocated
 static size_t *allocation_size_map = NULL;// Records the size of each allocation
 static size_t total_allocated_memory = 0;// Keeps track of total allocated memory
 static size_t pool_size = 0;       // Total size of the memory pool
-
+//test
 /**
  * @brief Initialize the memory pool with a specified size.
  *
