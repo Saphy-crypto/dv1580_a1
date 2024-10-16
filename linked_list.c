@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 /**
- * @brief Redirects stdout to /dev/null to suppress unwanted output.
+ * @brief Redirects stdout to /dev/null to suppress unwanted output. Basically just deletes them.
  *
  * @return FILE* pointing to the original stdout before redirection, or NULL on failure.
  */
@@ -16,13 +16,13 @@ FILE* redirect_stdout_to_null() {
     fflush(stdout); // Make sure all pending output is written out
 
     // Open /dev/null so we can discard any output sent to stdout
-    int dev_null = open("/dev/null", O_WRONLY);
+    int dev_null = open("/dev/null", O_WRONLY);// Write only mode
     if (dev_null == -1) {
         perror("open"); // Print error if opening /dev/null fails
         return NULL;
     }
 
-    // Save the current stdout file descriptor
+    // Save the current stdout file descriptor, fileno return the file descripter
     int saved_stdout_fd = dup(fileno(stdout));
     if (saved_stdout_fd == -1) {
         perror("dup"); // Print error if duplicating fails
@@ -122,7 +122,7 @@ void list_insert(Node** head, uint16_t data) {
     }
 
     // Allocate memory for the new node using the custom memory manager
-    Node* new_node = (Node*)mem_alloc(sizeof(Node));
+    Node* new_node = (Node*)mem_alloc(sizeof(Node));// Size of bytes
 
     // Restore stdout after allocation
     restore_stdout_from_null(saved_stdout);
@@ -424,7 +424,7 @@ void list_cleanup(Node** head) {
 
     Node* current = *head;
     while (current != NULL) {
-        Node* temp = current;
+        Node* temp = current; // Making sure the memory isn't freed twice 
         current = current->next;
 
         // Hide stdout to prevent mem_free from printing debug info
