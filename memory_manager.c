@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 // Global Variables
 static char *memory_pool = NULL;  // Pointer to the start of the memory pool
@@ -21,43 +23,44 @@ static size_t pool_size = 0;       // Total size of the memory pool
 void mem_init(size_t size) {
     if (size == 0) {
         printf("Size must be greater than zero.\n");
-        exit(1); // Can't proceed with a pool size of zero
+        exit(1);
     }
 
-    // Allocate the memory pool
-    memory_pool = (char*)malloc(size);
-    if (memory_pool == NULL) {
-        printf("Memory pool allocation failed!\n");
-        exit(1); // Critical failure; can't continue
+    size_t page_size = sysconf(_SC_PAGESIZE);
+    size_t alloc_size = ((size + page_size - 1) / page_size) * page_size;
+
+    // Allocate the memory pool using mmap
+    memory_pool = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (memory_pool == MAP_FAILED) {
+        perror("Memory pool allocation failed");
+        exit(1);
     }
 
-    // Allocate the allocation map (one bool per byte)
-    allocation_map = (bool*)malloc(size * sizeof(bool));
-    if (allocation_map == NULL) {
-        printf("Allocation map creation failed!\n");
-        free(memory_pool); // Clean up before exiting
+    // Allocate the allocation map
+    allocation_map = mmap(NULL, alloc_size * sizeof(bool), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (allocation_map == MAP_FAILED) {
+        perror("Allocation map creation failed");
+        munmap(memory_pool, alloc_size);
         exit(1);
     }
 
     // Allocate the allocation size map
-    allocation_size_map = (size_t*)malloc(size * sizeof(size_t));
-    if (allocation_size_map == NULL) {
-        printf("Allocation size map creation failed!\n");
-        free(memory_pool);
-        free(allocation_map);
+    allocation_size_map = mmap(NULL, alloc_size * sizeof(size_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (allocation_size_map == MAP_FAILED) {
+        perror("Allocation size map creation failed");
+        munmap(memory_pool, alloc_size);
+        munmap(allocation_map, alloc_size * sizeof(bool));
         exit(1);
     }
 
-    // Initialize allocation maps to indicate all memory is free
-    for (size_t i = 0; i < size; i++) {
-        allocation_map[i] = false;
-        allocation_size_map[i] = 0;
-    }
+    // Initialize allocation maps
+    memset(allocation_map, 0, alloc_size * sizeof(bool));
+    memset(allocation_size_map, 0, alloc_size * sizeof(size_t));
 
-    pool_size = size;               // Set the total pool size
-    total_allocated_memory = 0;    // No memory allocated yet
+    pool_size = size;
+    total_allocated_memory = 0;
 
-    printf("Memory pool of size %zu bytes initialized.\n", size);
+    printf("Memory pool of size %zu bytes initialized at %p.\n", size, memory_pool);
 }
 
 /**
@@ -266,17 +269,17 @@ void* mem_resize(void* block, size_t new_size) {
  */
 void mem_deinit() {
     if (memory_pool != NULL) {
-        free(memory_pool);
+        munmap(memory_pool, pool_size);
         memory_pool = NULL;
     }
 
     if (allocation_map != NULL) {
-        free(allocation_map);
+        munmap(allocation_map, pool_size * sizeof(bool));
         allocation_map = NULL;
     }
 
     if (allocation_size_map != NULL) {
-        free(allocation_size_map);
+        munmap(allocation_size_map, pool_size * sizeof(size_t));
         allocation_size_map = NULL;
     }
 
